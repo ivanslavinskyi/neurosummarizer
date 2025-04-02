@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title>NeuroSummarizer</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --text: #000;
+      --card: #fff;
+    }
+    [data-theme="dark"] {
+      --bg: #121212;
+      --text: #f5f5f5;
+      --card: #1e1e1e;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 0;
+      margin: 0;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .container { padding: 20px; }
+    header, footer {
+      background-color: var(--card);
+      padding: 10px 20px;
+      border-bottom: 1px solid #ccc;
+    }
+    footer {
+      border-top: 1px solid #ccc;
+      text-align: center;
+      font-size: 14px;
+      color: var(--text);
+    }
+    nav a {
+      margin-right: 15px;
+      text-decoration: none;
+      color: var(--text);
+    }
+    .article {
+      background: var(--card);
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+    }
+    .source { font-size: 13px; color: #888; }
+    .summary, .authors { margin-top: 10px; }
+    .link { margin-top: 10px; display: block; }
+    .pagination, .export-buttons {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .pagination button, .export-buttons button, #toggleTheme {
+      padding: 5px 10px;
+      margin: 0 5px;
+    }
+    .fade-in {
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeInUp 0.5s ease-out forwards;
+    }
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 style="display: inline-block;">NeuroSummarizer</h1>
+    <button id="toggleTheme" style="float:right;">🌙</button>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/about/">About</a>
+      <a href="/contact/">Contact</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <label for="sortSelect"><strong>Sort by:</strong></label>
+        <select id="sortSelect" onchange="reloadArticles()">
+          <option value="date-desc">Date (newest first)</option>
+          <option value="date-asc">Date (oldest first)</option>
+          <option value="id-desc">ID (newest in DB)</option>
+          <option value="id-asc">ID (oldest in DB)</option>
+        </select>
+      </div>
+      <div id="todayCount" style="font-size: 14px;"></div>
+    </div>
+
+    <div id="articles"></div>
+
+    <div class="pagination">
+      <button onclick="prevPage()" id="prevBtn" disabled>Previous</button>
+      <span id="pageInfo"></span>
+      <button onclick="nextPage()" id="nextBtn">Next</button>
+    </div>
+
+    <div class="export-buttons">
+      <button onclick="exportCSV()">Export to CSV</button>
+      <button onclick="exportJSON()">Export to JSON</button>
+      <button onclick="downloadPDF()">Download Weekly PDF</button>
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2025 NeuroSummarizer. All rights reserved.
+  </footer>
+
+  <script>
+    let currentPage = 0;
+    const limit = 10;
+
+    function getPageFromURL() {
+      const params = new URLSearchParams(window.location.search);
+      const page = parseInt(params.get("page"));
+      return isNaN(page) || page < 1 ? 1 : page;
+    }
+
+    function updateURL() {
+      const sortSelect = document.getElementById('sortSelect');
+      const sortValue = sortSelect.value;
+      const base = currentPage === 0 ? '/' : `?page=${currentPage + 1}`;
+      const sortPart = sortValue !== 'date-desc' ? `${base.includes('?') ? '&' : '?'}sort=${sortValue}` : '';
+      const newURL = base + sortPart;
+      history.pushState(null, '', newURL);
+    }
+
+    async function loadArticles() {
+      const offset = currentPage * limit;
+      const sortSelect = document.getElementById('sortSelect');
+      const [sort_by, order] = sortSelect.value.split('-');
+      const res = await fetch(`/api/articles?limit=${limit}&offset=${offset}&sort_by=${sort_by}&order=${order}`);
+      const data = await res.json();
+
+      const container = document.getElementById('articles');
+      const pageInfo = document.getElementById('pageInfo');
+      container.innerHTML = '';
+
+      data.results.forEach(article => {
+        const div = document.createElement('div');
+        div.className = 'article fade-in';
+        div.innerHTML = `
+          <h2>${article.title}</h2>
+          <div class="authors"><strong>Authors:</strong> ${article.authors}</div>
+          <div class="source"><strong>Source:</strong> ${article.source} | ${article.publication_date}</div>
+          <div class="summary">${article.summary}</div>
+          <a class="link" href="${article.url}" target="_blank">Read Original</a>
+        `;
+        container.appendChild(div);
+      });
+
+      pageInfo.textContent = `Page ${currentPage + 1} of ${Math.ceil(data.total / limit)}`;
+      document.getElementById('prevBtn').disabled = currentPage === 0;
+      document.getElementById('nextBtn').disabled = offset + limit >= data.total;
+
+      updateURL();
+    }
+
+    function scrollToTop() {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function nextPage() {
+      currentPage++;
+      loadArticles();
+      scrollToTop();
+    }
+
+    function prevPage() {
+      if (currentPage > 0) {
+        currentPage--;
+        loadArticles();
+        scrollToTop();
+      }
+    }
+
+    function exportCSV() {
+      window.location.href = "/api/export/csv";
+    }
+
+    function exportJSON() {
+      window.location.href = "/api/export/json";
+    }
+
+    function downloadPDF() {
+      window.location.href = "/api/export/weekly-pdf";
+    }
+
+    function reloadArticles() {
+      currentPage = 0;
+      loadArticles();
+      scrollToTop();
+    }
+
+    async function loadTodayCount() {
+      const res = await fetch('/api/articles/count-today');
+      const data = await res.json();
+      document.getElementById('todayCount').textContent = `Added today: ${data.count}`;
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      document.getElementById("toggleTheme").textContent = theme === "dark" ? "🌞" : "🌙";
+      localStorage.setItem("theme", theme);
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute("data-theme");
+      applyTheme(current === "dark" ? "light" : "dark");
+    }
+
+    window.onload = () => {
+      const savedTheme = localStorage.getItem("theme") || "light";
+      applyTheme(savedTheme);
+      document.getElementById("toggleTheme").addEventListener("click", toggleTheme);
+
+      const params = new URLSearchParams(window.location.search);
+      const sort = params.get('sort');
+      if (sort) document.getElementById('sortSelect').value = sort;
+
+      currentPage = getPageFromURL() - 1;
+      loadArticles();
+      loadTodayCount();
+    };
+  </script>
+</body>
+</html>

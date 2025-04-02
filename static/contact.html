@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title>Contact – NeuroSummarizer</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --text: #000;
+      --card: #fff;
+    }
+    [data-theme="dark"] {
+      --bg: #121212;
+      --text: #f5f5f5;
+      --card: #1e1e1e;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .container { padding: 20px; }
+    header, footer {
+      background-color: var(--card);
+      padding: 10px 20px;
+      border-bottom: 1px solid #ccc;
+    }
+    footer {
+      border-top: 1px solid #ccc;
+      text-align: center;
+      font-size: 14px;
+      color: var(--text);
+    }
+    nav a {
+      margin-right: 15px;
+      text-decoration: none;
+      color: var(--text);
+    }
+    #toggleTheme {
+      float: right;
+      margin-left: 20px;
+      padding: 5px 10px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 style="display:inline-block;">NeuroSummarizer</h1>
+    <button id="toggleTheme">🌙</button>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/about/">About</a>
+      <a href="/contact/">Contact</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <h2>Get in Touch</h2>
+    <p>If you are a researcher, student, or member of the Neuro community and would like to contribute, collaborate, or provide feedback — feel free to reach out.</p>
+    <ul>
+      <li>Email: <a href="mailto:contact@neurosummarizer.online">contact@neurosummarizer.online</a></li>
+      <li>GitHub: <a href="https://github.com/yourusername" target="_blank">yourusername</a></li>
+      <li>Maintainer: Ivan Slavinskyi</li>
+    </ul>
+  </div>
+
+  <footer>
+    &copy; 2025 NeuroSummarizer. All rights reserved.
+  </footer>
+
+  <script>
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      document.getElementById("toggleTheme").textContent = theme === "dark" ? "🌞" : "🌙";
+      localStorage.setItem("theme", theme);
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute("data-theme");
+      applyTheme(current === "dark" ? "light" : "dark");
+    }
+
+    window.onload = () => {
+      const savedTheme = localStorage.getItem("theme") || "light";
+      applyTheme(savedTheme);
+      document.getElementById("toggleTheme").addEventListener("click", toggleTheme);
+    };
+  </script>
+</body>
+</html>

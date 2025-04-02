@@ -1,0 +1,17 @@
+Saved 0 new articles.
+Saved 0 new articles.
+Saved 0 new articles.
+Saved 13 new articles.
+Summarizing article: Lysine-arginine imbalance overcomes therapeutic tolerance governed by the transcription factor E3-lysosome axis in glioblastoma.
+Summarizing article: Transcription factor NFKB1 mediates TUBB6 to promote the proliferation and suppress apoptosis in glioma via Wnt/β-catenin signaling pathway.
+Summarizing article: Frequency and outcomes of midline gliomas in a tertiary care hospital in Pakistan: a retrospective study.
+Summarizing article: Recent advances in biomimetic nanodelivery systems for the treatment of glioblastoma.
+Summarizing article: Identification of RASL11A as a gene conferring radiosensitivity in glioblastoma.
+Summarizing article: Precise Conformational Tuning Facilitated by Tetrahedral DNA Framework Dimers for Enhanced Biomolecular Detection.
+Summarizing article: Lipid peroxidation and immune activation: TRAF3's double-edged strategy against glioblastoma.
+Summarizing article: Parthanatos and apoptosis: unraveling their roles in cancer cell death and therapy resistance.
+Summarizing article: Resilience and vulnerabilities of tumor cells under purine shortage stress.
+Summarizing article: Differential Phagocytosis induces Diverse Macrophage Activation States in Malignant Gliomas.
+Summarizing article: ROCK2 Downregulation in Pediatric Medulloblastoma Increases Migration and Predicts the Involvement of SHH Non-canonical Signaling.
+Summarizing article: Composite nanoparticle-based vesicles achieve enhanced delivery effects of the natural plant extract of the root, stem, and fruit.
+Summarizing article: Construction of enhanced MRI-based radiomics models using machine learning algorithms for non-invasive prediction of IL7R expression in high-grade gliomas and its prognostic value in clinical practice.
