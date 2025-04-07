@@ -1,91 +1,108 @@
-from Bio import Entrez
-from database import SessionLocal, Article
-from datetime import datetime
-import calendar
+import os
+import requests
+import xml.etree.ElementTree as ET
+from bs4 import BeautifulSoup
+from datetime import datetime, date
+from database import Article, SessionLocal
 
-# Укажите ваш email для доступа к NCBI
-Entrez.email = "mr.ivanslavinsky@gmail.com"  # ← замените на свой email
-
-def fetch_pubmed_articles(keyword="glioma", max_results=15):
-    handle = Entrez.esearch(
-        db="pubmed",
-        term=keyword,
-        retmax=max_results,
-        sort="pub+date"  # Сортировка по дате публикации
-    )
-    record = Entrez.read(handle)
-    handle.close()
-
-    id_list = record["IdList"]
-    articles = []
-
-    for pubmed_id in id_list:
-        handle = Entrez.efetch(db="pubmed", id=pubmed_id, rettype="xml")
-        records = Entrez.read(handle)
-        handle.close()
-
+# Helper function to extract publication date from article
+def extract_pub_date(article):
+    def try_parse_date(year, month, day):
         try:
-            article_data = records["PubmedArticle"][0]["MedlineCitation"]["Article"]
+            return datetime.strptime(f"{year}-{int(month):02d}-{int(day):02d}", "%Y-%m-%d").date()
+        except Exception:
+            return None
 
-            title = article_data.get("ArticleTitle", "No title")
-            abstract = " ".join(article_data.get("Abstract", {}).get("AbstractText", ["No abstract"]))
-            authors_list = article_data.get("AuthorList", [])
-            authors = ", ".join(
-                [f"{a.get('LastName', '')} {a.get('ForeName', '')}".strip() for a in authors_list if 'LastName' in a]
-            )
+    article_date = article.find(".//ArticleDate")
+    if article_date is not None:
+        y = article_date.findtext("Year")
+        m = article_date.findtext("Month")
+        d = article_date.findtext("Day")
+        date1 = try_parse_date(y, m, d)
+        if date1:
+            return date1
 
-            # --- корректный парсинг даты ---
-            pub_info = article_data.get("Journal", {}).get("JournalIssue", {}).get("PubDate", {})
-            year = pub_info.get("Year", "1900")
-            month_str = pub_info.get("Month", "Jan")
-            day_str = pub_info.get("Day", "01")
+    pub_date = article.find(".//PubDate")
+    if pub_date is not None:
+        y = pub_date.findtext("Year")
+        m = pub_date.findtext("Month", "01")
+        d = pub_date.findtext("Day", "01")
+        try:
+            m = datetime.strptime(m[:3], "%b").month if not m.isdigit() else int(m)
+        except:
+            m = 1
+        date2 = try_parse_date(y, m, d)
+        if date2:
+            return date2
 
+    pm_date = article.find(".//PubMedPubDate")
+    if pm_date is not None:
+        y = pm_date.findtext("Year")
+        m = pm_date.findtext("Month")
+        d = pm_date.findtext("Day")
+        date3 = try_parse_date(y, m, d)
+        if date3:
+            return date3
+
+    return date.today()
+
+def fetch_pubmed_articles():
+    query = "glioma"
+    base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
+    search_url = f"{base_url}esearch.fcgi?db=pubmed&term={query}&retmode=json&retmax=32"
+    response = requests.get(search_url)
+    id_list = response.json()['esearchresult']['idlist']
+
+    fetch_url = f"{base_url}efetch.fcgi?db=pubmed&id={','.join(id_list)}&retmode=xml"
+    fetch_response = requests.get(fetch_url)
+    root = ET.fromstring(fetch_response.content)
+
+    new_articles = 0
+    session = SessionLocal()
+
+    with open("pubmed_log.txt", "a") as log:
+        for article in root.findall(".//PubmedArticle"):
             try:
-                month = list(calendar.month_abbr).index(month_str[:3]) if month_str[:3] in calendar.month_abbr else 1
-            except ValueError:
-                month = 1
+                title = article.findtext(".//ArticleTitle", default="").strip()
+                abstract = article.findtext(".//AbstractText", default="").strip()
 
-            try:
-                day = int(day_str)
-            except:
-                day = 1
+                if not abstract:
+                    log.write(f"[{datetime.now()}] Skipped (empty abstract): {title}\n")
+                    continue
 
-            pub_date = datetime(int(year), int(month), day).date()
+                authors_list = article.findall(".//Author")
+                authors = ", ".join([
+                    a.findtext("LastName", "") + " " + a.findtext("ForeName", "")
+                    for a in authors_list if a.find("LastName") is not None
+                ])
 
-            url = f"https://pubmed.ncbi.nlm.nih.gov/{pubmed_id}/"
+                pub_date = extract_pub_date(article)
+                url = f"https://pubmed.ncbi.nlm.nih.gov/{article.findtext('.//PMID')}/"
 
-            article = {
-                "title": title,
-                "authors": authors,
-                "abstract": abstract,
-                "publication_date": pub_date,
-                "url": url,
-                "keywords": keyword,
-                "source": "PubMed"
-            }
+                exists = session.query(Article).filter_by(title=title, source="PubMed").first()
+                if exists:
+                    continue
 
-            articles.append(article)
+                db_article = Article(
+                    title=title,
+                    authors=authors,
+                    abstract=abstract,
+                    summary=None,
+                    source="PubMed",
+                    publication_date=pub_date,
+                    url=url,
+                    keywords="glioma"
+                )
+                session.add(db_article)
+                session.commit()
+                new_articles += 1
 
-        except Exception as e:
-            print(f"Error parsing article {pubmed_id}: {e}")
-            continue
+                log.write(f"[{datetime.now()}] Saved: {title} | {pub_date}\n")
 
-    return articles
+            except Exception as e:
+                log.write(f"[{datetime.now()}] Error parsing article: {str(e)}\n")
 
-def save_articles(articles):
-    db = SessionLocal()
-    new_count = 0
-    for art in articles:
-        exists = db.query(Article).filter_by(url=art["url"]).first()
-        if not exists:
-            db_article = Article(**art)
-            db.add(db_article)
-            new_count += 1
-    db.commit()
-    db.close()
-    print(f"Saved {new_count} new articles.")
+    print(f"Saved {new_articles} new articles.")
 
 if __name__ == "__main__":
-    keyword = "glioma"
-    articles = fetch_pubmed_articles(keyword=keyword, max_results=15)
-    save_articles(articles)
+    fetch_pubmed_articles()

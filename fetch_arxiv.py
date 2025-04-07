@@ -1,43 +1,56 @@
 import feedparser
 from database import SessionLocal, Article
 from datetime import datetime
+import time
 
-def fetch_arxiv_articles(keyword="glioma", max_results=15):
-    # Сортировка по дате добавления: descending
+def fetch_arxiv_articles(keyword="glioma", max_results=30, retries=3, delay=5):
     url = (
         f"http://export.arxiv.org/api/query?"
         f"search_query=all:{keyword}&start=0&max_results={max_results}"
         f"&sortBy=submittedDate&sortOrder=descending"
     )
 
-    feed = feedparser.parse(url)
-    articles = []
-
-    for entry in feed.entries:
+    attempt = 0
+    while attempt < retries:
         try:
-            title = entry.title
-            authors = ", ".join(author.name for author in entry.authors)
-            abstract = entry.summary
-            pub_date = datetime.strptime(entry.published[:10], "%Y-%m-%d").date()
-            url = entry.link
+            feed = feedparser.parse(url)
+            articles = []
 
-            article = {
-                "title": title,
-                "authors": authors,
-                "abstract": abstract,
-                "publication_date": pub_date,
-                "url": url,
-                "keywords": keyword,
-                "source": "arXiv"
-            }
+            for entry in feed.entries:
+                try:
+                    title = entry.title
+                    authors = ", ".join(author.name for author in entry.authors)
+                    abstract = entry.summary
+                    pub_date = datetime.strptime(entry.published[:10], "%Y-%m-%d").date()
+                    url = entry.link
 
-            articles.append(article)
+                    article = {
+                        "title": title,
+                        "authors": authors,
+                        "abstract": abstract,
+                        "publication_date": pub_date,
+                        "url": url,
+                        "keywords": keyword,
+                        "source": "arXiv"
+                    }
+
+                    articles.append(article)
+
+                except Exception as e:
+                    print(f"Error parsing entry: {e}")
+                    continue
+
+            return articles
 
         except Exception as e:
-            print(f"Error parsing entry: {e}")
-            continue
-
-    return articles
+            attempt += 1
+            print(f"Attempt {attempt}/{retries} failed: {e}")
+            if attempt < retries:
+                print(f"Retrying in {delay} seconds...")
+                time.sleep(delay)
+            else:
+                print("All attempts failed.")
+                return []
 
 def save_articles(articles):
     db = SessionLocal()
@@ -54,5 +67,5 @@ def save_articles(articles):
 
 if __name__ == "__main__":
     keyword = "glioma"
-    articles = fetch_arxiv_articles(keyword=keyword, max_results=15)
+    articles = fetch_arxiv_articles(keyword=keyword, max_results=30)
     save_articles(articles)
