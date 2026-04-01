@@ -1,7 +1,13 @@
 fastapi
 uvicorn[standard]
+sqlalchemy
 requests
 python-dotenv
 openai
 pdfkit
-
+feedparser
+beautifulsoup4
+jinja2
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt

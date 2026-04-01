@@ -1,93 +1,47 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
-  <meta charset="UTF-8">
-  <title>Contact – NeuroSummarizer</title>
-  <style>
-    :root {
-      --bg: #f4f6f8;
-      --text: #000;
-      --card: #fff;
-    }
-    [data-theme="dark"] {
-      --bg: #121212;
-      --text: #f5f5f5;
-      --card: #1e1e1e;
-    }
-    body {
-      font-family: Arial, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      margin: 0;
-      padding: 0;
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-    .container { padding: 20px; }
-    header, footer {
-      background-color: var(--card);
-      padding: 10px 20px;
-      border-bottom: 1px solid #ccc;
-    }
-    footer {
-      border-top: 1px solid #ccc;
-      text-align: center;
-      font-size: 14px;
-      color: var(--text);
-    }
-    nav a {
-      margin-right: 15px;
-      text-decoration: none;
-      color: var(--text);
-    }
-    #toggleTheme {
-      float: right;
-      margin-left: 20px;
-      padding: 5px 10px;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contact — NeuroSummarizer</title>
+  <meta name="description" content="Get in touch with the NeuroSummarizer team. Questions, ideas, or bug reports welcome." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
+  <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
   <header>
-    <h1 style="display:inline-block;">NeuroSummarizer</h1>
-    <button id="toggleTheme">🌙</button>
-    <nav>
-      <a href="/">Home</a>
-      <a href="/about/">About</a>
-      <a href="/contact/">Contact</a>
-    </nav>
+    <div class="wrap nav">
+      <a href="/" class="brand">🧠 NeuroSummarizer</a>
+      <nav aria-label="Primary">
+        <button id="menuBtn" aria-label="Toggle menu">☰</button>
+        <div id="links">
+          <a href="/">Home</a>
+          <a href="/about/">About</a>
+          <a href="/contact/" class="active">Contact</a>
+        </div>
+      </nav>
+      <button id="themeBtn" aria-label="Toggle theme">🌙</button>
+    </div>
   </header>
 
-  <div class="container">
-    <h2>Get in Touch</h2>
-    <p>If you are a researcher, student, or member of the Neuro community and would like to contribute, collaborate, or provide feedback — feel free to reach out.</p>
+  <main class="wrap content">
+    <h1>Get in Touch</h1>
+    <p>Questions, ideas, or bugs? Reach us here:</p>
     <ul>
       <li>Email: <a href="mailto:contact@neurosummarizer.online">contact@neurosummarizer.online</a></li>
-      <li>GitHub: <a href="https://github.com/ivanslavinskyi/neurosummarizer/tree/main" target="_blank">NeuroSummarizer</a></li>
+      <li>GitHub: <a target="_blank" href="https://github.com/ivanslavinskyi/neurosummarizer">Project&nbsp;Repo</a></li>
       <li>Maintainer: Ivan Slavinskyi</li>
     </ul>
-  </div>
+  </main>
 
-  <footer>
-    &copy; 2025 NeuroSummarizer. All rights reserved.
-  </footer>
+  <footer>© 2026 NeuroSummarizer · Built with ❤️ and AI</footer>
 
   <script>
-    function applyTheme(theme) {
-      document.documentElement.setAttribute("data-theme", theme);
-      document.getElementById("toggleTheme").textContent = theme === "dark" ? "🌞" : "🌙";
-      localStorage.setItem("theme", theme);
-    }
-
-    function toggleTheme() {
-      const current = document.documentElement.getAttribute("data-theme");
-      applyTheme(current === "dark" ? "light" : "dark");
-    }
-
-    window.onload = () => {
-      const savedTheme = localStorage.getItem("theme") || "light";
-      applyTheme(savedTheme);
-      document.getElementById("toggleTheme").addEventListener("click", toggleTheme);
-    };
+    const themeBtn = document.getElementById('themeBtn');
+    const setT = t => { document.documentElement.dataset.theme = t; themeBtn.textContent = t === 'dark' ? '☀️' : '🌙'; localStorage.theme = t; };
+    themeBtn.onclick = () => setT(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    setT(localStorage.theme || 'light');
+    document.getElementById('menuBtn').onclick = () => document.getElementById('links').classList.toggle('open');
   </script>
 </body>
 </html>

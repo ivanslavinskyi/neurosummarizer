@@ -1,235 +1,318 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
-  <meta charset="UTF-8">
-  <title>NeuroSummarizer</title>
-  <style>
-    :root {
-      --bg: #f4f6f8;
-      --text: #000;
-      --card: #fff;
-    }
-    [data-theme="dark"] {
-      --bg: #121212;
-      --text: #f5f5f5;
-      --card: #1e1e1e;
-    }
-    body {
-      font-family: Arial, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      padding: 0;
-      margin: 0;
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-    .container { padding: 20px; }
-    header, footer {
-      background-color: var(--card);
-      padding: 10px 20px;
-      border-bottom: 1px solid #ccc;
-    }
-    footer {
-      border-top: 1px solid #ccc;
-      text-align: center;
-      font-size: 14px;
-      color: var(--text);
-    }
-    nav a {
-      margin-right: 15px;
-      text-decoration: none;
-      color: var(--text);
-    }
-    .article {
-      background: var(--card);
-      padding: 15px;
-      margin-bottom: 10px;
-      border-radius: 5px;
-      transition: background-color 0.3s ease;
-    }
-    .source { font-size: 13px; color: #888; }
-    .summary, .authors { margin-top: 10px; }
-    .link { margin-top: 10px; display: block; }
-    .pagination, .export-buttons {
-      text-align: center;
-      margin-top: 20px;
-    }
-    .pagination button, .export-buttons button, #toggleTheme {
-      padding: 5px 10px;
-      margin: 0 5px;
-    }
-    .fade-in {
-      opacity: 0;
-      transform: translateY(10px);
-      animation: fadeInUp 0.5s ease-out forwards;
-    }
-    @keyframes fadeInUp {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NeuroSummarizer — AI-Powered Neuroscience Article Summaries</title>
+  <meta name="description" content="NeuroSummarizer automatically fetches, summarizes, and categorizes the latest neuroscience research from PubMed and arXiv using AI." />
+  <meta property="og:title" content="NeuroSummarizer" />
+  <meta property="og:description" content="AI-powered neuroscience article summaries from PubMed and arXiv." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://neurosummarizer.online" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
+  <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
+  <!-- ========== HEADER ========== -->
   <header>
-    <h1 style="display: inline-block;">NeuroSummarizer</h1>
-    <button id="toggleTheme" style="float:right;">🌙</button>
-    <nav>
-      <a href="/">Home</a>
-      <a href="/about/">About</a>
-      <a href="/contact/">Contact</a>
-    </nav>
+    <div class="wrap nav">
+      <a href="/" class="brand">🧠 NeuroSummarizer</a>
+      <nav aria-label="Primary">
+        <button id="menuBtn" aria-label="Toggle menu">☰</button>
+        <div id="links">
+          <a href="/" class="active">Home</a>
+          <a href="/about/">About</a>
+          <a href="/contact/">Contact</a>
+        </div>
+      </nav>
+      <button id="themeBtn" aria-label="Toggle theme">🌙</button>
+    </div>
   </header>
 
-  <div class="container">
-    <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
-      <div>
-        <label for="sortSelect"><strong>Sort by:</strong></label>
-        <select id="sortSelect" onchange="reloadArticles()">
-          <option value="date-desc">Date (newest first)</option>
-          <option value="date-asc">Date (oldest first)</option>
-          <option value="id-desc">ID (newest in DB)</option>
-          <option value="id-asc">ID (oldest in DB)</option>
-        </select>
+  <!-- ========== MAIN ========== -->
+  <main class="wrap" id="app">
+
+    <!-- Search -->
+    <section class="search-section">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input id="searchInput" type="text" placeholder="Search articles by title, abstract, or summary…" autocomplete="off" />
+        <button id="searchClear" class="search-clear" aria-label="Clear search">✕</button>
       </div>
-      <div id="todayCount" style="font-size: 14px;"></div>
-    </div>
+    </section>
 
-    <div id="articles"></div>
+    <!-- Categories -->
+    <section class="filters" id="categoryFilters">
+      <span class="filter-label">Categories:</span>
+      <!-- populated by JS -->
+    </section>
 
-    <div class="pagination">
-      <button onclick="prevPage()" id="prevBtn" disabled>Previous</button>
+    <!-- Source + Sort -->
+    <section class="toolbar">
+      <div class="toolbar-left">
+        <div class="filters" id="sourceFilters" style="margin:0">
+          <span class="filter-label">Source:</span>
+          <span class="chip active" data-source="">All</span>
+          <span class="chip" data-source="PubMed">PubMed</span>
+          <span class="chip" data-source="arXiv">arXiv</span>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select id="sortSelect">
+          <option value="date-desc">Date ↓ newest</option>
+          <option value="date-asc">Date ↑ oldest</option>
+        </select>
+        <span id="todayCount" class="today-badge" style="display:none"></span>
+      </div>
+    </section>
+
+    <!-- Articles -->
+    <section id="articles" class="grid"></section>
+
+    <!-- Pagination -->
+    <div class="pager">
+      <button id="prevBtn" disabled>← Prev</button>
       <span id="pageInfo"></span>
-      <button onclick="nextPage()" id="nextBtn">Next</button>
+      <button id="nextBtn">Next →</button>
     </div>
 
-    <div class="export-buttons">
-      <button onclick="exportCSV()">Export to CSV</button>
-      <button onclick="exportJSON()">Export to JSON</button>
-      <button onclick="downloadPDF()">Download Weekly PDF</button>
-    </div>
-  </div>
+    <!-- Export -->
+    <section class="export-bar">
+      <button onclick="location.href='/api/export/csv'">📥 Export CSV</button>
+      <button onclick="location.href='/api/export/json'">📥 Export JSON</button>
+      <button onclick="location.href='/api/export/weekly-pdf'">📄 Weekly PDF</button>
+    </section>
+  </main>
 
-  <footer>
-    &copy; 2025 NeuroSummarizer. All rights reserved.
-  </footer>
+  <!-- ========== FOOTER ========== -->
+  <footer>© 2026 NeuroSummarizer · Built with ❤️ and AI</footer>
 
+  <!-- ========== SCRIPT ========== -->
   <script>
-    let currentPage = 0;
-    const limit = 10;
+    /* ---------- Theme ---------- */
+    const themeBtn = document.getElementById('themeBtn');
+    const applyTheme = t => {
+      document.documentElement.dataset.theme = t;
+      themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
+      localStorage.theme = t;
+    };
+    themeBtn.onclick = () => applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    applyTheme(localStorage.theme || 'light');
 
-    function getPageFromURL() {
-      const params = new URLSearchParams(window.location.search);
-      const page = parseInt(params.get("page"));
-      return isNaN(page) || page < 1 ? 1 : page;
+    /* ---------- Menu ---------- */
+    document.getElementById('menuBtn').onclick = () =>
+      document.getElementById('links').classList.toggle('open');
+
+    /* ---------- State ---------- */
+    let page = 0, limit = 10;
+    let searchQuery = '';
+    let selectedCategory = null;
+    let selectedSource = '';
+    let categories = [];
+
+    /* ---------- Init from URL ---------- */
+    const qs = k => new URLSearchParams(location.search).get(k);
+    page = Math.max((+qs('page') || 1) - 1, 0);
+    if (qs('sort')) document.getElementById('sortSelect').value = qs('sort');
+    if (qs('q')) { searchQuery = qs('q'); document.getElementById('searchInput').value = searchQuery; }
+    if (qs('category')) selectedCategory = +qs('category');
+    if (qs('source')) selectedSource = qs('source');
+
+    /* ---------- Search ---------- */
+    let searchTimer;
+    const searchInput = document.getElementById('searchInput');
+    const searchClear = document.getElementById('searchClear');
+
+    searchInput.addEventListener('input', () => {
+      searchQuery = searchInput.value.trim();
+      searchClear.classList.toggle('visible', !!searchQuery);
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => { page = 0; render(); }, 350);
+    });
+    searchClear.onclick = () => {
+      searchInput.value = '';
+      searchQuery = '';
+      searchClear.classList.remove('visible');
+      page = 0; render();
+    };
+    if (searchQuery) searchClear.classList.add('visible');
+
+    /* ---------- Categories ---------- */
+    async function loadCategories() {
+      try {
+        categories = await fetch('/api/categories').then(r => r.json());
+        const wrap = document.getElementById('categoryFilters');
+        // keep the label
+        wrap.innerHTML = '<span class="filter-label">Categories:</span>';
+        // All chip
+        const allChip = document.createElement('span');
+        allChip.className = 'chip' + (selectedCategory === null ? ' active' : '');
+        allChip.textContent = 'All';
+        allChip.onclick = () => { selectedCategory = null; page = 0; refreshCategoryChips(); render(); };
+        wrap.appendChild(allChip);
+
+        categories.forEach(c => {
+          const chip = document.createElement('span');
+          chip.className = 'chip' + (selectedCategory === c.id ? ' active' : '');
+          chip.innerHTML = `<span class="dot" style="background:${c.color}"></span>${c.display_name}`;
+          chip.onclick = () => { selectedCategory = c.id; page = 0; refreshCategoryChips(); render(); };
+          wrap.appendChild(chip);
+        });
+      } catch (e) { console.error('Failed to load categories', e); }
     }
 
-    function updateURL() {
-      const sortSelect = document.getElementById('sortSelect');
-      const sortValue = sortSelect.value;
-      const base = currentPage === 0 ? '/' : `?page=${currentPage + 1}`;
-      const sortPart = sortValue !== 'date-desc' ? `${base.includes('?') ? '&' : '?'}sort=${sortValue}` : '';
-      const newURL = base + sortPart;
-      history.pushState(null, '', newURL);
-    }
-
-    async function loadArticles() {
-      const offset = currentPage * limit;
-      const sortSelect = document.getElementById('sortSelect');
-      const [sort_by, order] = sortSelect.value.split('-');
-      const res = await fetch(`/api/articles?limit=${limit}&offset=${offset}&sort_by=${sort_by}&order=${order}`);
-      const data = await res.json();
-
-      const container = document.getElementById('articles');
-      const pageInfo = document.getElementById('pageInfo');
-      container.innerHTML = '';
-
-      data.results.forEach(article => {
-        const div = document.createElement('div');
-        div.className = 'article fade-in';
-        div.innerHTML = `
-          <h2>${article.title}</h2>
-          <div class="authors"><strong>Authors:</strong> ${article.authors}</div>
-          <div class="source"><strong>Source:</strong> ${article.source} | ${article.publication_date}</div>
-          <div class="summary">${article.summary}</div>
-          <a class="link" href="${article.url}" target="_blank">Read Original</a>
-        `;
-        container.appendChild(div);
+    function refreshCategoryChips() {
+      document.querySelectorAll('#categoryFilters .chip').forEach(ch => {
+        const isAll = !ch.querySelector('.dot');
+        if (isAll) {
+          ch.classList.toggle('active', selectedCategory === null);
+        } else {
+          const cat = categories.find(c => ch.textContent.trim() === c.display_name);
+          ch.classList.toggle('active', cat && selectedCategory === cat.id);
+        }
       });
-
-      pageInfo.textContent = `Page ${currentPage + 1} of ${Math.ceil(data.total / limit)}`;
-      document.getElementById('prevBtn').disabled = currentPage === 0;
-      document.getElementById('nextBtn').disabled = offset + limit >= data.total;
-
-      updateURL();
     }
 
-    function scrollToTop() {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    /* ---------- Source filter ---------- */
+    document.querySelectorAll('#sourceFilters .chip').forEach(ch => {
+      ch.onclick = () => {
+        selectedSource = ch.dataset.source;
+        document.querySelectorAll('#sourceFilters .chip').forEach(c => c.classList.remove('active'));
+        ch.classList.add('active');
+        page = 0; render();
+      };
+      // restore from URL
+      if (ch.dataset.source === selectedSource) {
+        document.querySelectorAll('#sourceFilters .chip').forEach(c => c.classList.remove('active'));
+        ch.classList.add('active');
+      }
+    });
 
-    function nextPage() {
-      currentPage++;
-      loadArticles();
-      scrollToTop();
-    }
+    /* ---------- Sort ---------- */
+    document.getElementById('sortSelect').addEventListener('change', () => { page = 0; render(); });
 
-    function prevPage() {
-      if (currentPage > 0) {
-        currentPage--;
-        loadArticles();
-        scrollToTop();
+    /* ---------- Skeleton ---------- */
+    function showSkeleton() {
+      const wrap = document.getElementById('articles');
+      wrap.innerHTML = '';
+      for (let i = 0; i < 5; i++) {
+        wrap.insertAdjacentHTML('beforeend', `
+          <div class="skeleton-card">
+            <div class="skeleton skeleton-line title"></div>
+            <div class="skeleton skeleton-line meta"></div>
+            <div class="skeleton skeleton-line body" style="margin-top:1rem"></div>
+            <div class="skeleton skeleton-line body2"></div>
+          </div>
+        `);
       }
     }
 
-    function exportCSV() {
-      window.location.href = "/api/export/csv";
+    /* ---------- Render ---------- */
+    async function render() {
+      showSkeleton();
+      const sort = document.getElementById('sortSelect').value.split('-');
+      let url = `/api/articles?limit=${limit}&offset=${page * limit}&sort_by=${sort[0]}&order=${sort[1]}`;
+      if (searchQuery) url += `&q=${encodeURIComponent(searchQuery)}`;
+      if (selectedCategory) url += `&category_id=${selectedCategory}`;
+      if (selectedSource) url += `&source=${encodeURIComponent(selectedSource)}`;
+
+      try {
+        const data = await fetch(url).then(r => r.json());
+        const wrap = document.getElementById('articles');
+        wrap.innerHTML = '';
+
+        if (data.results.length === 0) {
+          wrap.innerHTML = `
+            <div class="empty-state">
+              <div class="icon">🔬</div>
+              <h3>No articles found</h3>
+              <p>Try adjusting your search query or filters.</p>
+            </div>
+          `;
+        } else {
+          data.results.forEach((a, i) => {
+            const catBadge = a.category_name
+              ? `<span class="category-badge" style="background:${a.category_color || '#64748b'}">${escHtml(a.category_name)}</span>`
+              : '';
+            const summary = a.summary || '<em style="color:var(--text-secondary)">Summary pending…</em>';
+
+            const card = document.createElement('article');
+            card.className = 'article';
+            card.style.animationDelay = `${i * 0.04}s`;
+            card.innerHTML = `
+              <h2><a href="${escAttr(a.url)}" target="_blank" rel="noopener">${escHtml(a.title)}</a></h2>
+              <p class="meta">
+                ${escHtml(a.authors || '')}
+                <span class="meta-sep">·</span> ${escHtml(a.source)}
+                <span class="meta-sep">·</span> ${escHtml(a.publication_date || '')}
+                ${catBadge}
+              </p>
+              <p class="summary">${summary}</p>
+              <div class="article-footer">
+                <a class="read-link" href="${escAttr(a.url)}" target="_blank" rel="noopener">
+                  Read original →
+                </a>
+              </div>
+            `;
+            wrap.appendChild(card);
+          });
+        }
+
+        const totalPages = Math.ceil(data.total / limit) || 1;
+        document.getElementById('pageInfo').textContent = `Page ${page + 1} of ${totalPages}`;
+        document.getElementById('prevBtn').disabled = page === 0;
+        document.getElementById('nextBtn').disabled = (page + 1) * limit >= data.total;
+
+        // Update URL
+        const params = new URLSearchParams();
+        params.set('page', page + 1);
+        params.set('sort', document.getElementById('sortSelect').value);
+        if (searchQuery) params.set('q', searchQuery);
+        if (selectedCategory) params.set('category', selectedCategory);
+        if (selectedSource) params.set('source', selectedSource);
+        history.replaceState(null, '', `?${params}`);
+      } catch (e) {
+        console.error('Failed to load articles', e);
+        document.getElementById('articles').innerHTML = `
+          <div class="empty-state">
+            <div class="icon">⚠️</div>
+            <h3>Failed to load articles</h3>
+            <p>Please try again later.</p>
+          </div>
+        `;
+      }
     }
 
-    function exportJSON() {
-      window.location.href = "/api/export/json";
+    /* ---------- Helpers ---------- */
+    function escHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = str || '';
+      return d.innerHTML;
+    }
+    function escAttr(str) {
+      return (str || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    function downloadPDF() {
-      window.location.href = "/api/export/weekly-pdf";
+    /* ---------- Pagination ---------- */
+    document.getElementById('nextBtn').onclick = () => { page++; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    document.getElementById('prevBtn').onclick = () => { if (page) { page--; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); } };
+
+    /* ---------- Today count ---------- */
+    async function loadToday() {
+      try {
+        const c = await fetch('/api/articles/count-today').then(r => r.json());
+        if (c.count > 0) {
+          const el = document.getElementById('todayCount');
+          el.textContent = `+${c.count} today`;
+          el.style.display = '';
+        }
+      } catch (e) {}
     }
 
-    function reloadArticles() {
-      currentPage = 0;
-      loadArticles();
-      scrollToTop();
-    }
-
-    async function loadTodayCount() {
-      const res = await fetch('/api/articles/count-today');
-      const data = await res.json();
-      document.getElementById('todayCount').textContent = `Added today: ${data.count}`;
-    }
-
-    function applyTheme(theme) {
-      document.documentElement.setAttribute("data-theme", theme);
-      document.getElementById("toggleTheme").textContent = theme === "dark" ? "🌞" : "🌙";
-      localStorage.setItem("theme", theme);
-    }
-
-    function toggleTheme() {
-      const current = document.documentElement.getAttribute("data-theme");
-      applyTheme(current === "dark" ? "light" : "dark");
-    }
-
-    window.onload = () => {
-      const savedTheme = localStorage.getItem("theme") || "light";
-      applyTheme(savedTheme);
-      document.getElementById("toggleTheme").addEventListener("click", toggleTheme);
-
-      const params = new URLSearchParams(window.location.search);
-      const sort = params.get('sort');
-      if (sort) document.getElementById('sortSelect').value = sort;
-
-      currentPage = getPageFromURL() - 1;
-      loadArticles();
-      loadTodayCount();
-    };
+    /* ---------- Boot ---------- */
+    loadCategories();
+    loadToday();
+    render();
   </script>
 </body>
 </html>
